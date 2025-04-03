@@ -1,3 +1,6 @@
+//TODO add a map between button number and mode number so rich can change it himself
+// Tip: drop the upload speed to 115260 or the upload to the board fails (for CYD)
+
 #include <TFT_eSPI.h>           // Graphics library for ESP32
 #include <XPT2046_Touchscreen.h>
 #include <SPI.h>
@@ -36,8 +39,9 @@ struct Button {
   String label;
 };
 
-// Create an array to hold four buttons
-Button buttons[4];
+// Create an array to hold buttons
+const uint8_t numOfButtons = 6;
+Button buttons[numOfButtons];
 
 void setup_wifi() {
   delay(10);
@@ -102,14 +106,17 @@ void setup() {
   ts.begin(touchscreenSPI);
   
   // Calculate button dimensions based on the screen size
-  int btnWidth = tft.width();
-  int btnHeight = tft.height() / 4;
+  int btnWidth = tft.width() / 2;
+  int btnHeight = tft.height() / 3;
   
-    // Define four buttons arranged in a 1x4 grid
-  buttons[0] = {0,           0, btnWidth, btnHeight, false, "Off"};
-  buttons[1] = {0,   btnHeight, btnWidth, btnHeight, false, "Mode 1"};
-  buttons[2] = {0, btnHeight*2, btnWidth, btnHeight, false, "Mode 2"};
-  buttons[3] = {0, btnHeight*3, btnWidth, btnHeight, false, "Mode 3"};
+    // Define four buttons arranged in a 1x6 grid
+  buttons[0] = {       0,           0, btnWidth, btnHeight, false, "Off"};
+  buttons[1] = {btnWidth,           0, btnWidth, btnHeight, false, "Fade In"};
+  buttons[2] = {       0,   btnHeight, btnWidth, btnHeight, false, "Broken"};
+  buttons[3] = {btnWidth,   btnHeight, btnWidth, btnHeight, false, "Fade Out"};
+  buttons[4] = {       0, btnHeight*2, btnWidth, btnHeight, false, "Gold"};
+  buttons[5] = {btnWidth, btnHeight*2, btnWidth, btnHeight, false, "Rainbow"};
+  
   // Initially select the first button
   buttons[0].selected = true;
   
@@ -126,21 +133,26 @@ void loop() {
   if (ts.touched()) {
     // Get the touch point. Note: Depending on your touchscreen, you might need to remap coordinates.
     TS_Point p = ts.getPoint();
-    int touchX = map(p.y, 240, 3800, 1, SCREEN_WIDTH);
-    int touchY = map(p.x, 200, 3700, 1, SCREEN_HEIGHT);
+    Serial.print("x: ");
+    Serial.print(p.x);
+    Serial.print("\t y: ");
+    Serial.println(p.y);
+
+    int touchX = map(p.y, 240, 3800, SCREEN_WIDTH, 1);
+    int touchY = map(p.x, 200, 3800, 1, SCREEN_HEIGHT);
     // Debug: print touch coordinates to Serial
-    // Serial.print("Touched at: ");
-    // Serial.print(touchX);
-    // Serial.print(", ");
-    // Serial.println(touchY);
-    // printButtonXY();
+    Serial.print("Touched at: ");
+    Serial.print(touchX);
+    Serial.print(", ");
+    Serial.println(touchY);
+    printButtonXY();
     
     // Determine which button is pressed
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < numOfButtons; i++) {
       if (touchX >= buttons[i].x && touchX <= (buttons[i].x + buttons[i].w) &&
           touchY >= buttons[i].y && touchY <= (buttons[i].y + buttons[i].h)) {
         // Set all buttons to unselected, then select the pressed button
-        for (int j = 0; j < 4; j++) {
+        for (int j = 0; j < numOfButtons; j++) {
           buttons[j].selected = false;
         }
         buttons[i].selected = true;
@@ -173,13 +185,13 @@ void drawButton(Button &btn, int index) {
 
 // Function to redraw all buttons
 void drawButtons() {
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < numOfButtons; i++) {
     drawButton(buttons[i], i);
   }
 }
 
 void printButtonXY() {
-  for (int i=0; i<4; i++) {
+  for (int i=0; i<numOfButtons; i++) {
     Serial.print(i);
     Serial.print(" ");
     Serial.print(buttons[i].x);
